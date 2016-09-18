@@ -28,7 +28,7 @@ x1plan2 <- demo1plan2$x
 y1plan2 <- demo1plan2$y
 par(xpd=FALSE)
 plot(y1plan2 ~ x1plan2, data=demo1plan2, xlab="X value", ylab="Y Value", main="Plan when dt = 0.12", col='green', ylim=c(-1.1, 1.1), xlim=c(0,23))
-lines(x1plan2, y1plan2, col='green', lwd=2)
+#lines(x1plan2, y1plan2, col='green', lwd=2)
 
 #Plan 2, that uses dt= 0.12 with demonstration as well
 plot(y1plan2 ~ x1plan2, data=demo1plan2, xlab="X value", ylab="Y Value", main="Demonstration(dt=0.1) and Plan(dt = 0.12)", col='orange', ylim=c(-1.1, 1.1), xlim=c(0,23))
@@ -51,7 +51,7 @@ x1plannew<- demo1plannew$x
 y1plannew <- demo1plannew$y
 par(xpd=FALSE)
 plot(y1plannew ~ x1plannew, data=demo1plannew, xlab="X value", ylab="Y Value", main="Plan when dt = 0.1, New Goal", col='blue', ylim=c(-1.1, 2), xlim=c(0,26))
-lines(x1plannew, y1plannew, col='blue', lwd=2)
+#lines(x1plannew, y1plannew, col='blue', lwd=2)
 
 #Plot of both Demonstration2 and Planned Trajectory
 plot(y ~ x, data=demo1, xlab="X value", ylab="Y Value", main="Original Demonstration/Plan with New Goal when dt = 0.1, ", col='darkcyan', ylim=c(-1.1, 2), xlim=c(0,26), lwd=2)
@@ -66,7 +66,7 @@ xhspeed1plan1<- hspeed1plan1$x
 yhspeed1plan1 <- hspeed1plan1$y
 par(xpd=FALSE)
 plot(yhspeed1plan1 ~ xhspeed1plan1, data=hspeed1plan1, xlab="X value", ylab="Y Value", main="Half-Speed-Plan when dt = 0.1", col='blue', ylim=c(-1.1, 1.1), xlim=c(0,23))
-lines(xhspeed1plan1, yhspeed1plan1, col='blue', lwd=2)
+#lines(xhspeed1plan1, yhspeed1plan1, col='blue', lwd=2)
 
 #Plot of Both Demonstration (DarkCyan) and Planned Trajectory (Blue)
 plot(y ~ x, data=demo1, xlab="X value", ylab="Y Value", main="Demonstration/Half-Speed-Plan when dt = 0.1", col='darkcyan', ylim=c(-1.1, 1.1), xlim=c(0,23), lwd=2)
@@ -78,7 +78,7 @@ xhspeed1plan2<- hspeed1plan2$x
 yhspeed1plan2 <- hspeed1plan2$y
 par(xpd=FALSE)
 plot(yhspeed1plan2 ~ xhspeed1plan2, data=hspeed1plan2, xlab="X value", ylab="Y Value", main="Half-Speed-Plan when dt = 0.12", col='blue', ylim=c(-1.1, 1.1), xlim=c(0,23))
-lines(xhspeed1plan2, yhspeed1plan2, col='blue', lwd=2)
+#lines(xhspeed1plan2, yhspeed1plan2, col='blue', lwd=2)
 
 #Plot of Both Demonstration (DarkCyan) and Planned Trajectory (Blue)
 plot(y ~ x, data=demo1, xlab="X value", ylab="Y Value", main="Demonstration/Half-Speed-Plan when dt = 0.12", col='darkcyan', ylim=c(-1.1, 1.1), xlim=c(0,23), lwd=2)
