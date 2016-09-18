@@ -15,27 +15,74 @@ public class DMPRunner
 		double D = getD(K);
 		dmp.learn(demonstrations, K, D);
 		Trajectory trajForDemo1 = dmp.plan(17.5, 0.1, true, K, D);
-		oneDemonstration.printTrajectory("plan_demo1_dt_point1.csv");
+		trajForDemo1.printTrajectory("plan_demo1_dt_point1.csv");
 		Trajectory traj2ForDemo1 = dmp.plan(17.5, 0.12, true, K, D);
-		oneDemonstration2.printTrajectory("plan_demo1_dt_point12.csv");
+		traj2ForDemo1.printTrajectory("plan_demo1_dt_point12.csv");
 
+		//Generate a Plan for a different Start and End Goal
+		double K2 = 2500;
+		double D2 = getD(K2);
+		dmp = new DMP();
+		dmp.learn(demonstrations, K2, D2);
+		Point start = new Point(1, -1);
+		Point goal = new Point(25, 1);
+		Trajectory trajForDemo2 = dmp.plan(start, goal, 17.5, 0.1, true, K2, D2);
+		trajForDemo2.printTrajectory("plan_newgoal_demo1_dt_point1.csv");
+		Trajectory traj2ForDemo2 = dmp.plan(start, goal, 17.5, 0.12, true, K2, D2);
+		traj2ForDemo2.printTrajectory("plan__newgoal_demo1_dt_point12.csv");
 		//Change xstart to be 0.75, instead of 0
+		/*
 		Demonstration demo2 = new Demonstration("demo2.csv", 0.75, 0.1, 25, 17.5);
 		ArrayList<Demonstration> demonstrations2 = new ArrayList<Demonstration>();
 		demonstrations2.add(demo2);
 
 		double K2 = 2500;
 		double D2 = getD(K2);
+		dmp = new DMP();
 		dmp.learn(demonstrations2, K2, D2);
 		Trajectory trajForDemo2 = dmp.plan(17.5, 0.1, true, K2, D2);
-		oneDemonstration.printTrajectory("plan_demo2_dt_point1.csv");
+		trajForDemo2.printTrajectory("plan_demo2_dt_point1.csv");
 		Trajectory traj2ForDemo2 = dmp.plan(17.5, 0.12, true, K2, D2);
-		oneDemonstration2.printTrajectory("plan_demo2_dt_point12.csv");
+		traj2ForDemo2.printTrajectory("plan_demo2_dt_point12.csv");
+		*/
 
+		// Generates plans that are half as fast as original demonstrations
+		//Original Demonstration
+		dmp = new DMP();
+		dmp.learn(demonstrations, K, D);
+		Trajectory traj1HalfSpeedDemo1 = dmp.plan(17.5 * 2, 0.1, true, K, D);
+		traj1HalfSpeedDemo1.printTrajectory("plan_demo1_dt_point1_halfx.csv");
+		Trajectory traj2HalfSpeedDemo1 = dmp.plan(17.5 * 2, 0.12, true, K, D);
+		traj2HalfSpeedDemo1.printTrajectory("plan_demo1_dt_point12_halfx.csv");
+		//TODO: new start and goal at half speed
+
+		//Generates plans that are twice as fast as original demonstrations
+		//Original Demonstration
+		Trajectory traj1DoubleSpeedDemo1 = dmp.plan(17.5/2, 0.1, true, K, D);
+		traj1DoubleSpeedDemo1.printTrajectory("plan_demo1_dt_point1_2x.csv");
+		Trajectory traj2DoubleSpeedDemo1 = dmp.plan(17.5/2, 0.12, true, K, D);
+		traj2DoubleSpeedDemo1.printTrajectory("plan_demo1_dt_point12_2x.csv");
+		//TODO: Different Goal
+		
 	}
 
 	public static double getD(double K)
 	{
 		return (2 * Math.sqrt(K));
+	}
+
+	//we use a variance of 0.25
+	public static ArrayList<Point> getNoise(Demonstration demo)
+	{
+		GaussianNoiseGenerator gng = new GaussianNoiseGenerator(0, 0.25);
+		ArrayList<Point> noisyDemo = new ArrayList<Point>();
+		for (Point p : demo.demonstration)
+		{
+			double newx = p.x + gng.generateNoise();
+			double newy = p.y + gng.generateNoise(); 
+			Point newP = new Point(newx, newy);
+			noisyDemo.add(newP);
+		}
+		return noisyDemo;
 	}
 }

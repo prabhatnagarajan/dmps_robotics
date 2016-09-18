@@ -47,6 +47,12 @@ public class DMP
 	//calls the main plan function
 	public Trajectory plan(double tau, double dt, boolean oneDemo, double K, double D)
 	{
+		return plan(this.start, this.goal, 0.0, tau, dt, oneDemo, K, D);
+	}
+
+	//calls the main plan function, but allows for new goals
+	public Trajectory plan(Point start, Point goal, double tau, double dt, boolean oneDemo, double K, double D)
+	{
 		return plan(start, goal, 0.0, tau, dt, oneDemo, K, D);
 	}
 
