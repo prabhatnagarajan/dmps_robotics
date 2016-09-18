@@ -7,3 +7,5 @@
 javac *.java
 
 java DMPRunner 
+
+Rscript graph.r
