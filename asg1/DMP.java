@@ -1,19 +1,34 @@
 import java.util.*;
+import java.io.*;
+import org.apache.commons.math3.linear.*;
 public class DMP
 {
 	public double alpha;
-	public double weights;
 	public Point start;
 	public Point goal;
 	public HashMap<Double, Double> fTargetX;
 	public HashMap<Double, Double> fTargetY;
+	public ArrayList<HashMap<Double, Double>> fTargetXs;
+	public ArrayList<HashMap<Double, Double>> fTargetYs;
 	public HashMap<Double, Double> sValues;
+	public ArrayList<HashMap<Double, Double>> sValList;
+	public ArrayList<ArrayList<GaussianBasisFunction>> gbfs;
+	public ArrayList<ArrayList<Double>> weights;
+	public double targetx[];
+	public double actualx[];
+	public double targety[];
+	public double actualy[];
 	public DMP()
 	{
 		this.alpha = 0.0 - Math.log(0.01);
 		fTargetX = new HashMap<Double, Double>();
 		fTargetY = new HashMap<Double, Double>();
 		sValues = new HashMap<Double, Double>();
+		weights = new ArrayList<ArrayList<Double>>();
+		gbfs = new ArrayList<ArrayList<GaussianBasisFunction>>();
+		sValList = new ArrayList<HashMap<Double, Double>> ();
+		fTargetXs = new ArrayList<HashMap<Double, Double>>();
+		fTargetYs = new ArrayList<HashMap<Double, Double>>();
 	}
 
 	/*takes in Cartesian Demonstration trajectory, the spring/damping constants K and D. 
@@ -24,6 +39,10 @@ public class DMP
 		if (demonstrations.size() == 1)
 		{
 			learnOneDemo(demonstrations.get(0), K, D);
+		}
+		else
+		{
+			learnMultipleDemos(demonstrations, K, D);
 		}
 	}
 
@@ -37,11 +56,7 @@ public class DMP
 	*/
 	public Trajectory plan(Point start, Point goal, double v0, double tau, double dt, boolean oneDemo, double K, double D)
 	{
-		if (oneDemo)
-		{
-			return planOneTraj(start, goal, v0, tau, dt, K, D);
-		}
-		return null;
+		return planOneTraj(start, goal, v0, tau, dt, K, D, oneDemo);
 	}
 
 	//calls the main plan function
@@ -64,8 +79,137 @@ public class DMP
 	{
 		start = demonstration.start;
 		goal = demonstration.goal;
-		populateSValues(demonstration);
-		populateFTarget(demonstration, D, K);
+		populateSValues(demonstration, sValues);
+		populateFTarget(demonstration, fTargetX, fTargetY, sValues, D, K);
+	}
+
+	public void learnMultipleDemos(ArrayList<Demonstration> demonstrations, double K, double D)
+	{
+		//NEED TO FIND START AND GOAL
+		// start = demonstration.start;
+		// goal = demonstration.goal;
+
+		//Compute the sVals for all the demonstrations
+		for (int i = 0; i < demonstrations.size(); i++)
+		{
+			HashMap<Double, Double> sVal = new HashMap<Double, Double>();
+			populateSValues(demonstrations.get(i), sVal);
+			sValList.add(sVal);
+		}
+		//Compute the FTargets for all the demonstrations
+		for (int i = 0; i < demonstrations.size(); i++)
+		{
+			HashMap<Double, Double> targetX = new HashMap<Double, Double>();
+			HashMap<Double, Double> targetY = new HashMap<Double, Double>();
+			populateFTarget(demonstrations.get(i), targetX, targetY, sValList.get(i), D, K);
+			fTargetXs.add(targetX);
+			fTargetYs.add(targetY);
+		}
+		//Find the lengths of the Y Vector for Linear regression
+		int YxLen = 0;
+		int YyLen = 0;
+		for (int i = 0; i < fTargetXs.size(); i++)
+		{
+			YxLen += fTargetXs.get(i).size();
+			YyLen += fTargetYs.get(i).size();
+		}
+		double Yx[] = new double[YxLen];
+		double Yy[] = new double[YyLen];
+		actualx = new double [YxLen];
+		targetx = new double [YxLen];
+		actualy = new double [YxLen];
+		targety = new double [YxLen];
+		//Fill in the Y vector with the fTargetValues
+		int index = 0;
+		for (int i = 0; i < fTargetXs.size(); i++)
+		{
+			HashMap<Double, Double> targetX = fTargetXs.get(i);
+			HashMap<Double, Double> targetY = fTargetYs.get(i);
+			Double []svals = new Double[sValList.get(i).values().size()];
+			sValList.get(i).values().toArray(svals);
+			Arrays.sort(svals);
+			for (int k = 0; k < svals.length; k++)
+			{
+				Yx[index] = targetX.get(svals[k]);
+				Yy[index] = targetY.get(svals[k]);
+				index++;
+			}
+		}
+
+		generateBasisFunctions();
+
+		//compute the design matrices
+		double designx[][] = computeDesignMatrix(true); 
+		double designy[][] = computeDesignMatrix(false);
+
+		//index 0 stores learned x weights, index 1 stores learned y weights 
+		WeightLearner wl = new WeightLearner();
+		ArrayList<Double> xweights = new ArrayList<Double>();
+		for (double d : wl.learnWeights(designx, Yx))
+		{
+			xweights.add(d);
+		}
+		ArrayList<Double> yweights = new ArrayList<Double>();
+		for (double d : wl.learnWeights(designy, Yy))
+		{
+			yweights.add(d);
+		}
+		weights.add(xweights);
+		weights.add(yweights);
+
+		HashMap<Double, Double> targetX = fTargetXs.get(0);
+		HashMap<Double, Double> targetY = fTargetYs.get(0);
+		try{
+			PrintWriter writer = new PrintWriter("ftargetx.csv");
+			writer.println("s,ftarget");
+			int num = 0;
+			for (double d : new TreeSet<Double>(targetX.keySet()))
+			{
+				targetx[num] = targetX.get(d);
+				writer.println(d + "," + targetX.get(d));
+				num++;
+			}
+			writer.close();
+
+			PrintWriter writer2 = new PrintWriter("ftargety.csv");
+			writer2.println("s,ftarget");
+			int num2 = 0;
+			for (double d : new TreeSet<Double>(targetY.keySet()))
+			{
+				targety[num2] = targetY.get(d);
+				writer2.println(d + "," + targetY.get(d));
+				num2++;
+			}
+			writer2.close();
+
+			PrintWriter writer3 = new PrintWriter("fx.csv");
+			writer3.println("s,f");
+			int num3 = 0;
+			for (double d : new TreeSet<Double>(targetX.keySet()))
+			{
+				actualx[num3] = fx(d, false);
+				writer3.println(d + "," + fx(d, false));
+				num3++;
+			}
+			writer3.close();
+
+			PrintWriter writer4 = new PrintWriter("fy.csv");
+			writer4.println("s,f");
+			int num4 = 0;
+			for (double d : new TreeSet<Double>(targetY.keySet()))
+			{
+				actualy[num4] = fy(d, false);
+				writer4.println(d + "," + fy(d, false));
+				num4++;
+			}
+			writer4.close();
+			System.out.println("X then Y");
+			printL2Norm(actualx, targetx);
+			printL2Norm(actualy, targety);
+		}catch(Exception e)
+		{
+			e.printStackTrace();
+		}
 	}
 
 	/*
@@ -74,7 +218,7 @@ public class DMP
 	This function returns a planned cartesian trajectory from the start to the goal that is tau seconds longs
 	with waypoints spaced out every dt seconds. It returns the trajectory of the time-stamped poses, we ignore the corresponding velocities
 	*/
-	public Trajectory planOneTraj(Point start, Point goal, double v0, double tau, double dt, double K, double D)
+	public Trajectory planOneTraj(Point start, Point goal, double v0, double tau, double dt, double K, double D, boolean oneDemo)
 	{
 		Trajectory traj = new Trajectory();
 		traj.timeStepSize = dt;
@@ -90,9 +234,9 @@ public class DMP
 			double s = s(time - dt, tau);
 			//integrate
 			double newx = x + dt * getdx(tau, vx);
-			double newvx = vx + dt * getdv(tau, K, start.x, goal.x, x, D, vx, s, fx(s, true));
+			double newvx = vx + dt * getdv(tau, K, start.x, goal.x, x, D, vx, s, fx(s, oneDemo));
 			double newy = y + dt * getdx(tau, vy);
-			double newvy = vy + dt * getdv(tau, K, start.y, goal.y, y, D, vy, s, fy(s, true));
+			double newvy = vy + dt * getdv(tau, K, start.y, goal.y, y, D, vy, s, fy(s, oneDemo));
 			x = newx;
 			y = newy;
 			vx = newvx;
@@ -117,7 +261,7 @@ public class DMP
 		return (term1 + term2 + term3 + term4)/tau;
 	}
 
-	public void populateSValues(Demonstration demon)
+	public void populateSValues(Demonstration demon, HashMap<Double, Double> sValues)
 	{
 		double time = 0;
 		for (int i = 0; i < demon.demonstration.size(); i++)
@@ -132,7 +276,7 @@ public class DMP
 		return Math.pow(Math.E, 0.0 - (alpha * time / tau));
 	}
 
-	public void populateFTarget(Demonstration demon, double D, double K)
+	public void populateFTarget(Demonstration demon, HashMap<Double, Double> fTargetX, HashMap<Double, Double> fTargetY, HashMap<Double, Double> sValues, double D, double K)
 	{
 		double time = 0;
 		for (int i = 0; i < demon.demonstration.size(); i++)
@@ -184,7 +328,15 @@ public class DMP
 		}
 		else
 		{
-			return 0.0;
+			//use Gaussian basis functions
+			double res = 0;
+			ArrayList<GaussianBasisFunction> basisFuncs = gbfs.get(0);
+			for (int i = 0; i < basisFuncs.size(); i++)
+			{
+				double funcRes = basisFuncs.get(i).evaluate(s);
+				res += (funcRes * weights.get(0).get(i) * s);
+			}
+			return res;
 		}
 	}
 
@@ -222,8 +374,60 @@ public class DMP
 		}
 		else
 		{
-			return 0.0;
+			double res = 0;
+			ArrayList<GaussianBasisFunction> basisFuncs = gbfs.get(1);
+			for (int i = 0; i < basisFuncs.size(); i++)
+			{
+				double funcRes = basisFuncs.get(i).evaluate(s);
+				res += (funcRes * weights.get(1).get(i) * s);
+			}
+			return res;
 		}
+	}
+
+	public double[][] computeDesignMatrix(boolean x)
+	{
+		double [][]design;
+		int numCols;
+		int numRows = 0;
+		
+		//compute the number of data points
+		for (HashMap<Double, Double> sval : sValList)
+		{
+			numRows += sval.size();
+		}
+
+		//compute the number of rows
+		ArrayList<GaussianBasisFunction> basisFuncs;
+		if (x)
+		{
+			numCols = gbfs.get(0).size(); 
+			basisFuncs = gbfs.get(0);
+		}
+		else
+		{
+			numCols = gbfs.get(1).size();
+			basisFuncs = gbfs.get(1);
+		}
+
+		design = new double[numRows][numCols];
+
+		int rowNum = 0;;
+		for (HashMap<Double, Double> sval : sValList)
+		{
+			Double []svals = new Double[sval.values().size()];
+			sval.values().toArray(svals);
+			Arrays.sort(svals);
+			for (double s : svals)
+			{
+				for (int k = 0; k < numCols; k++)
+				{
+					design[rowNum][k] = basisFuncs.get(k).evaluate(s) * s;
+				}
+				rowNum++;
+			}
+		}
+		return design;
 	}
 
 	public double linearInterpolate(double s1, double s2, double s, boolean x)
@@ -236,5 +440,61 @@ public class DMP
 		{
 			return fTargetY.get(s1) + (fTargetY.get(s2) - fTargetY.get(s1))*((s - s1)/(s2 - s1));
 		}
+	}
+
+	public void generateBasisFunctions(double tau, double dt)
+	{
+		double halfdt = Math.pow(Math.E, 0 - ((alpha * dt/2)/tau))
+		double sigma = halfdt/2;
+		double h = 1/(2 * sigma * sigma);
+		ArrayList<GaussianBasisFunction> xfuncs = new ArrayList<GaussianBasisFunction>();
+		ArrayList<GaussianBasisFunction> yfuncs = new ArrayList<GaussianBasisFunction>();
+		double h = 1;
+		for (HashMap<Double, Double> targetX : fTargetXs)
+		{
+			int i = 0;
+			for (double s : new TreeSet<Double>(targetX.keySet()))
+			{
+				xfuncs.add(new GaussianBasisFunction(50, s));
+			}
+		}
+		// for (int i = 0; i < 10; i++)
+		// {
+		// 	double c = 0;
+		// 	for (int k = 0; k < 100; k++)
+		// 	{
+		// 		xfuncs.add(new GaussianBasisFunction(5, c));
+		// 		c += 0.01;
+		// 	}
+		// 	h += 0.25;
+		// }
+
+		for (HashMap<Double, Double> targetY : fTargetYs)
+		{
+			for (double s : targetY.keySet())
+			{
+				yfuncs.add(new GaussianBasisFunction(50, s));
+			}
+		}
+		// h = -1;
+		// for (int i = 0; i < 10; i++)
+		// {
+		// 	double c = 0;
+		// 	for (int k = 0; k < 100; k++)
+		// 	{
+		// 		yfuncs.add(new GaussianBasisFunction(2, c));
+		// 		c += 0.03;
+		// 	}
+		// 	h += 0.5;
+		// }
+		gbfs.add(xfuncs);
+		gbfs.add(yfuncs);
+	}
+
+	public void printL2Norm(double []d, double[]d2)
+	{
+		ArrayRealVector a = new ArrayRealVector(d);
+		ArrayRealVector b = new ArrayRealVector(d2);
+		System.out.println((a.subtract(b)).getNorm());
 	}
 }

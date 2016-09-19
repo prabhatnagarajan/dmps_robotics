@@ -5,7 +5,7 @@ public class DMPRunner
 	public static void main(String args[]) throws IOException
 	{
 		System.out.println("Entering Program");
-		Demonstration demo1 = new Demonstration("demo1.csv", 0, 0.1, 25, 17.5);
+		Demonstration demo1 = new Demonstration("demo1.csv", 0, 0.1, 25, 17.5, false);
 		ArrayList<Demonstration> demonstrations = new ArrayList<Demonstration>();
 		demonstrations.add(demo1);
 		DMP dmp = new DMP();
@@ -63,26 +63,20 @@ public class DMPRunner
 		Trajectory traj2DoubleSpeedDemo1 = dmp.plan(17.5/2, 0.12, true, K, D);
 		traj2DoubleSpeedDemo1.printTrajectory("plan_demo1_dt_point12_2x.csv");
 		//TODO: Different Goal
-		
+
+		//Generate a Noisy Demonstration
+		double K3 = 500;
+		double D3 = getD(K3);
+		Demonstration noisyDemo = new Demonstration("noisydemo.csv", 0, 0.1, 25, 17.5, true);
+		demonstrations.add(noisyDemo);
+		dmp = new DMP();
+		dmp.learn(demonstrations, K3, D3);
+		Trajectory trajForTwoDemos = dmp.plan(new Point(0, 0), new Point(21.99, 0), 17.5, 0.1, false, K3, D3);
+		trajForTwoDemos.printTrajectory("plan_2demos_dt_point1.csv");
 	}
 
 	public static double getD(double K)
 	{
 		return (2 * Math.sqrt(K));
-	}
-
-	//we use a variance of 0.25
-	public static ArrayList<Point> getNoise(Demonstration demo)
-	{
-		GaussianNoiseGenerator gng = new GaussianNoiseGenerator(0, 0.25);
-		ArrayList<Point> noisyDemo = new ArrayList<Point>();
-		for (Point p : demo.demonstration)
-		{
-			double newx = p.x + gng.generateNoise();
-			double newy = p.y + gng.generateNoise(); 
-			Point newP = new Point(newx, newy);
-			noisyDemo.add(newP);
-		}
-		return noisyDemo;
 	}
 }

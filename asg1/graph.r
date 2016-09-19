@@ -112,3 +112,49 @@ points(xdspeed1plan1, ydspeed1plan1, col='blue')
 legend(x=0, y=-1.1, inset=c(0, 0),
        legend=c("Original Demonstration", "Planned Trajectory"), 
        col=c("red","blue"), pch=1, merge=FALSE, cex=1)
+
+#Plot Noisy demo
+noisydemo = read.csv("noisydemo.csv")
+noisyx = noisydemo$x
+noisyy = noisydemo$y
+par(xpd=FALSE)
+plot(noisyy ~ noisyx, data=noisydemo, xlab="X value", ylab="Y Value", main="Noisy Demonstration, dt = 0.1, Noise Variance = 0.1", col='blue', ylim=c(-1.75, 1.75), xlim=c(-1,26), lwd=2)
+
+#Plot alongside original demonstration
+plot(y ~ x, data=demo1, xlab="X value", ylab="Y Value", main="Original Demonstration/Noisy Demonstration, dt = 0.1", col='red', ylim=c(-1.75, 1.75), xlim=c(-1,26), lwd=2)
+points(noisyx, noisyy, col='blue')
+legend(x=20, y=-1.4, inset=c(0, 0),
+       legend=c("Original Demo", "Noisy Demo"), 
+       col=c("red","blue"), pch=1, merge=FALSE, cex=0.9)
+
+#Plot plan from joint demonstrations
+#Plot Noisy demo
+plan2demos = read.csv("plan_2demos_dt_point1.csv")
+plan2demosx = plan2demos$x
+plan2demosy = plan2demos$y
+par(xpd=FALSE)
+plot(plan2demosy ~ plan2demosx, data=plan2demos, xlab="X value", ylab="Y Value", main="Learned Plan from Original and Noisy Demo, dt = 0.1, Noise Variance = 0.1", col='blue', ylim=c(-1.75, 1.75), xlim=c(0,25), lwd=2)
+
+ftargetx = read.csv("ftargetx.csv")
+ftargetxs = ftargetx$s
+ftargetxf = ftargetx$ftarget
+par(xpd=FALSE)
+plot(ftargetxf ~ ftargetxs, data=ftargetx, xlab="S value", ylab="F Value", main="F Target X", col='blue', ylim=c(-20, 20), xlim=c(-0.01,1.01), lwd=2)
+
+ftargety = read.csv("ftargety.csv")
+ftargetys = ftargety$s
+ftargeyf = ftargety$ftarget
+par(xpd=FALSE)
+plot(ftargeyf ~ ftargetys, data=ftargety, xlab="S value", ylab="F Value", main="F Target Y", col='blue', ylim=c(-20, 20), xlim=c(-0.01,1.01), lwd=2)
+
+fx = read.csv("fx.csv")
+fxs = fx$s
+fxf = fx$f
+par(xpd=FALSE)
+plot(fxf ~ fxs, data=fx, xlab="S value", ylab="F Value", main="F  X", col='blue', ylim=c(-20, 20), xlim=c(-0.01,1.01), lwd=2)
+
+fy = read.csv("fy.csv")
+fys = fy$s
+fyf = fy$f
+par(xpd=FALSE)
+plot(fyf ~ fys, data=fy, xlab="S value", ylab="F Value", main="F  Y", col='blue', ylim=c(-20, 20), xlim=c(-0.01,1.01), lwd=2)

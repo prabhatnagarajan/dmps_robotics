@@ -14,7 +14,7 @@ public class Demonstration
 	public double numCycles;
 	public double pointsPerCycle;
 	public double tau;
-	public Demonstration(String filePath, double xstart, double timeStepSize, int pointsPerCycle, double tau)
+	public Demonstration(String filePath, double xstart, double timeStepSize, int pointsPerCycle, double tau, boolean noisy)
 	{
 		this.start = start;
 		this.filePath = filePath;
@@ -28,16 +28,25 @@ public class Demonstration
 		velocitiesy = new ArrayList<Double>();
 		accelerationsx = new ArrayList<Double>();
 		accelerationsy = new ArrayList<Double>();
-		generate(xstart);
+		generate(xstart, noisy);
 	}
 
-	public void generate(double xstart)
+	public void generate(double xstart, boolean noisy)
 	{
 		demonstration = new ArrayList<Point>();
+		//We use a variance of 0.1
+		GaussianNoiseGenerator gng = new GaussianNoiseGenerator(0, 0.0);
 		for (double x = xstart; x < xstart + (numCycles * Math.PI); x += Math.PI/pointsPerCycle)
 		{
-			Point p = new Point (x, Math.sin(x));
-			demonstration.add(p);
+			if (noisy)
+			{
+				demonstration.add(new Point(x + gng.generateNoise(), Math.sin(x) + gng.generateNoise()));
+			}
+			else
+			{
+				Point p = new Point (x, Math.sin(x));
+				demonstration.add(p);
+			}
 		}
 		start = demonstration.get(0);
 		goal = demonstration.get(demonstration.size() - 1);
