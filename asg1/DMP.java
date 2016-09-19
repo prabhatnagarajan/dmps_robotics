@@ -54,21 +54,21 @@ public class DMP
 	This function returns a planned cartesian trajectory from the start to the goal that is tau seconds long
 	with waypoints spaced out every dt seconds. It returns the trajectory of the time-stamped poses, we ignore the corresponding velocities
 	*/
-	public Trajectory plan(Point start, Point goal, double v0, double tau, double dt, boolean oneDemo, double K, double D)
+	public Trajectory plan(Point start, Point goal, double v0, double tau, double dt, boolean oneDemo, double K, double D, Point obstacle)
 	{
-		return planOneTraj(start, goal, v0, tau, dt, K, D, oneDemo);
+		return planOneTraj(start, goal, v0, tau, dt, K, D, oneDemo, obstacle);
 	}
 
 	//calls the main plan function
-	public Trajectory plan(double tau, double dt, boolean oneDemo, double K, double D)
+	public Trajectory plan(double tau, double dt, boolean oneDemo, double K, double D, Point obstacle)
 	{
-		return plan(this.start, this.goal, 0.0, tau, dt, oneDemo, K, D);
+		return plan(this.start, this.goal, 0.0, tau, dt, oneDemo, K, D, obstacle);
 	}
 
 	//calls the main plan function, but allows for new goals
-	public Trajectory plan(Point start, Point goal, double tau, double dt, boolean oneDemo, double K, double D)
+	public Trajectory plan(Point start, Point goal, double tau, double dt, boolean oneDemo, double K, double D, Point obstacle)
 	{
-		return plan(start, goal, 0.0, tau, dt, oneDemo, K, D);
+		return plan(start, goal, 0.0, tau, dt, oneDemo, K, D, obstacle);
 	}
 
 	/*
@@ -85,9 +85,21 @@ public class DMP
 
 	public void learnMultipleDemos(ArrayList<Demonstration> demonstrations, double K, double D)
 	{
-		//NEED TO FIND START AND GOAL
-		// start = demonstration.start;
-		// goal = demonstration.goal;
+		//used later for Gaussian Basis Functions
+		double maxdt = Double.MIN_VALUE;
+		double maxtau = Double.MIN_VALUE;
+		for (Demonstration demo : demonstrations)
+		{
+			if (demo.timeStepSize > maxdt)
+			{
+				maxdt = demo.timeStepSize;
+			}
+			if (demo.tau > maxtau)
+			{
+				maxtau = demo.tau;
+			}
+		}
+
 
 		//Compute the sVals for all the demonstrations
 		for (int i = 0; i < demonstrations.size(); i++)
@@ -136,7 +148,7 @@ public class DMP
 			}
 		}
 
-		generateBasisFunctions();
+		generateBasisFunctions(maxtau, maxdt);
 
 		//compute the design matrices
 		double designx[][] = computeDesignMatrix(true); 
@@ -218,8 +230,15 @@ public class DMP
 	This function returns a planned cartesian trajectory from the start to the goal that is tau seconds longs
 	with waypoints spaced out every dt seconds. It returns the trajectory of the time-stamped poses, we ignore the corresponding velocities
 	*/
-	public Trajectory planOneTraj(Point start, Point goal, double v0, double tau, double dt, double K, double D, boolean oneDemo)
+	public Trajectory planOneTraj(Point start, Point goal, double v0, double tau, double dt, double K, double D, boolean oneDemo, Point obs)
 	{
+		CouplingTerm obstacle = null;
+		if (obs != null)
+		{
+			System.out.println("" + obs.x + " " + obs.y);
+			//specify force of obstacle
+			obstacle = new CouplingTerm(0, 0, obs, 0, 10);
+		}
 		Trajectory traj = new Trajectory();
 		traj.timeStepSize = dt;
 		double time = dt;
@@ -234,9 +253,10 @@ public class DMP
 			double s = s(time - dt, tau);
 			//integrate
 			double newx = x + dt * getdx(tau, vx);
-			double newvx = vx + dt * getdv(tau, K, start.x, goal.x, x, D, vx, s, fx(s, oneDemo));
+			Point currentLoc = new Point(x, y);
+			double newvx = vx + dt * getdv(tau, K, start.x, goal.x, x, currentLoc, D, vx, s, fx(s, oneDemo), obstacle, true);
 			double newy = y + dt * getdx(tau, vy);
-			double newvy = vy + dt * getdv(tau, K, start.y, goal.y, y, D, vy, s, fy(s, oneDemo));
+			double newvy = vy + dt * getdv(tau, K, start.y, goal.y, y, currentLoc, D, vy, s, fy(s, oneDemo), obstacle, false);
 			x = newx;
 			y = newy;
 			vx = newvx;
@@ -252,13 +272,25 @@ public class DMP
 		return v/tau;
 	}
 
-	public double getdv(double tau, double K, double start, double goal, double loc, double D, double v, double s, double fs)
+	public double getdv(double tau, double K, double start, double goal, double loc, Point currentLoc, double D, double v, double s, double fs, CouplingTerm obstacle, boolean x)
 	{
 		double term1 = K * (goal - loc);
 		double term2 = - (D * v);
 		double term3 =  (-K) * (goal - start) * s;
 		double term4 = K * fs;
-		return (term1 + term2 + term3 + term4)/tau;
+		double term5 = 0;
+		if (obstacle != null)
+		{
+			if (x)
+			{
+				term5 = obstacle.getXAcceleration(currentLoc);
+			}
+			else
+			{
+				term5 = obstacle.getYAcceleration(currentLoc);
+			}
+		}
+		return (term1 + term2 + term3 + term4 + term5)/tau;
 	}
 
 	public void populateSValues(Demonstration demon, HashMap<Double, Double> sValues)
@@ -444,49 +476,28 @@ public class DMP
 
 	public void generateBasisFunctions(double tau, double dt)
 	{
-		double halfdt = Math.pow(Math.E, 0 - ((alpha * dt/2)/tau))
+		double halfdt = Math.pow(Math.E, 0 - ((alpha * dt/2)/tau));
 		double sigma = halfdt/2;
 		double h = 1/(2 * sigma * sigma);
 		ArrayList<GaussianBasisFunction> xfuncs = new ArrayList<GaussianBasisFunction>();
 		ArrayList<GaussianBasisFunction> yfuncs = new ArrayList<GaussianBasisFunction>();
-		double h = 1;
 		for (HashMap<Double, Double> targetX : fTargetXs)
 		{
 			int i = 0;
 			for (double s : new TreeSet<Double>(targetX.keySet()))
 			{
-				xfuncs.add(new GaussianBasisFunction(50, s));
+				xfuncs.add(new GaussianBasisFunction(h, s));
 			}
 		}
-		// for (int i = 0; i < 10; i++)
-		// {
-		// 	double c = 0;
-		// 	for (int k = 0; k < 100; k++)
-		// 	{
-		// 		xfuncs.add(new GaussianBasisFunction(5, c));
-		// 		c += 0.01;
-		// 	}
-		// 	h += 0.25;
-		// }
 
 		for (HashMap<Double, Double> targetY : fTargetYs)
 		{
 			for (double s : targetY.keySet())
 			{
-				yfuncs.add(new GaussianBasisFunction(50, s));
+				yfuncs.add(new GaussianBasisFunction(h, s));
 			}
 		}
-		// h = -1;
-		// for (int i = 0; i < 10; i++)
-		// {
-		// 	double c = 0;
-		// 	for (int k = 0; k < 100; k++)
-		// 	{
-		// 		yfuncs.add(new GaussianBasisFunction(2, c));
-		// 		c += 0.03;
-		// 	}
-		// 	h += 0.5;
-		// }
+
 		gbfs.add(xfuncs);
 		gbfs.add(yfuncs);
 	}

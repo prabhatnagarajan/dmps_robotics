@@ -35,7 +35,7 @@ public class Demonstration
 	{
 		demonstration = new ArrayList<Point>();
 		//We use a variance of 0.1
-		GaussianNoiseGenerator gng = new GaussianNoiseGenerator(0, 0.0);
+		GaussianNoiseGenerator gng = new GaussianNoiseGenerator(0, 0.1);
 		for (double x = xstart; x < xstart + (numCycles * Math.PI); x += Math.PI/pointsPerCycle)
 		{
 			if (noisy)

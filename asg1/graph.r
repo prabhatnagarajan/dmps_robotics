@@ -158,3 +158,15 @@ fys = fy$s
 fyf = fy$f
 par(xpd=FALSE)
 plot(fyf ~ fys, data=fy, xlab="S value", ylab="F Value", main="F  Y", col='blue', ylim=c(-20, 20), xlim=c(-0.01,1.01), lwd=2)
+
+planobstacle = read.csv("plan_obstacle_dt_point1.csv")
+planobstaclex = planobstacle$x
+planobstacley = planobstacle$y
+obstacle = read.csv("obstacle.csv")
+obstaclex = obstacle$x
+obstacley = obstacle$y
+
+par(xpd=FALSE)
+plot(planobstacley ~ planobstaclex, data=planobstacle, xlab="X value", ylab="Y Value", main="Plan from Original Demo with Obstacle", col='blue',  ylim=c(-1.75, 1.75), xlim=c(-1,23), lwd=2)
+points(obstaclex, obstacley, col='darkcyan')
+
