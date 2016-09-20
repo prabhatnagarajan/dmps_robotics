@@ -65,7 +65,7 @@ public class DMPRunner
 		//TODO: Different Goal
 
 		//Generate a Noisy Demonstration
-		double K3 = 50;
+		double K3 = 100;
 		double D3 = getD(K3);
 		Demonstration noisyDemo = new Demonstration("noisydemo.csv", 0, 0.1, 25, 17.5, true);
 		demonstrations.add(noisyDemo);

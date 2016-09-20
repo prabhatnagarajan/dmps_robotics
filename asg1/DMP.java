@@ -481,22 +481,23 @@ public class DMP
 		double h = 1/(2 * sigma * sigma);
 		ArrayList<GaussianBasisFunction> xfuncs = new ArrayList<GaussianBasisFunction>();
 		ArrayList<GaussianBasisFunction> yfuncs = new ArrayList<GaussianBasisFunction>();
+		TreeSet<Double> sVals = new TreeSet<Double>();
 		for (HashMap<Double, Double> targetX : fTargetXs)
 		{
-			int i = 0;
-			for (double s : new TreeSet<Double>(targetX.keySet()))
-			{
-				xfuncs.add(new GaussianBasisFunction(h, s));
-			}
+			sVals.addAll(targetX.keySet());
 		}
-
-		for (HashMap<Double, Double> targetY : fTargetYs)
+		for (Double s : sVals)
 		{
-			for (double s : targetY.keySet())
-			{
-				yfuncs.add(new GaussianBasisFunction(h, s));
-			}
+			xfuncs.add(new GaussianBasisFunction(5 * Math.pow(Math.E, 0 -s),s));
+			yfuncs.add(new GaussianBasisFunction(4 * Math.pow(Math.E, 0 -s),s));
 		}
+		// for (HashMap<Double, Double> targetY : fTargetYs)
+		// {
+		// 	for (double s : targetY.keySet())
+		// 	{
+		// 		yfuncs.add(new GaussianBasisFunction(h, s));
+		// 	}
+		// }
 
 		gbfs.add(xfuncs);
 		gbfs.add(yfuncs);
