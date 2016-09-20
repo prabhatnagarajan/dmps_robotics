@@ -489,7 +489,7 @@ public class DMP
 		for (Double s : sVals)
 		{
 			xfuncs.add(new GaussianBasisFunction(5 * Math.pow(Math.E, 0 -s),s));
-			yfuncs.add(new GaussianBasisFunction(4 * Math.pow(Math.E, 0 -s),s));
+			yfuncs.add(new GaussianBasisFunction(5 * Math.pow(Math.E, 0 -s),s));
 		}
 		// for (HashMap<Double, Double> targetY : fTargetYs)
 		// {
