@@ -54,21 +54,21 @@ public class DMP
 	This function returns a planned cartesian trajectory from the start to the goal that is tau seconds long
 	with waypoints spaced out every dt seconds. It returns the trajectory of the time-stamped poses, we ignore the corresponding velocities
 	*/
-	public Trajectory plan(Point start, Point goal, double v0, double tau, double dt, boolean oneDemo, double K, double D, Point obstacle)
+	public Trajectory plan(Point start, Point goal, double v0, double tau, double dt, boolean oneDemo, double K, double D, Point obstacle, double mag)
 	{
-		return planOneTraj(start, goal, v0, tau, dt, K, D, oneDemo, obstacle);
+		return planOneTraj(start, goal, v0, tau, dt, K, D, oneDemo, obstacle, mag);
 	}
 
 	//calls the main plan function
-	public Trajectory plan(double tau, double dt, boolean oneDemo, double K, double D, Point obstacle)
+	public Trajectory plan(double tau, double dt, boolean oneDemo, double K, double D, Point obstacle, double mag)
 	{
-		return plan(this.start, this.goal, 0.0, tau, dt, oneDemo, K, D, obstacle);
+		return plan(this.start, this.goal, 0.0, tau, dt, oneDemo, K, D, obstacle, mag);
 	}
 
 	//calls the main plan function, but allows for new goals
-	public Trajectory plan(Point start, Point goal, double tau, double dt, boolean oneDemo, double K, double D, Point obstacle)
+	public Trajectory plan(Point start, Point goal, double tau, double dt, boolean oneDemo, double K, double D, Point obstacle, double mag)
 	{
-		return plan(start, goal, 0.0, tau, dt, oneDemo, K, D, obstacle);
+		return plan(start, goal, 0.0, tau, dt, oneDemo, K, D, obstacle, mag);
 	}
 
 	/*
@@ -230,14 +230,14 @@ public class DMP
 	This function returns a planned cartesian trajectory from the start to the goal that is tau seconds longs
 	with waypoints spaced out every dt seconds. It returns the trajectory of the time-stamped poses, we ignore the corresponding velocities
 	*/
-	public Trajectory planOneTraj(Point start, Point goal, double v0, double tau, double dt, double K, double D, boolean oneDemo, Point obs)
+	public Trajectory planOneTraj(Point start, Point goal, double v0, double tau, double dt, double K, double D, boolean oneDemo, Point obs, double mag)
 	{
 		CouplingTerm obstacle = null;
 		if (obs != null)
 		{
 			System.out.println("" + obs.x + " " + obs.y);
 			//specify force of obstacle
-			obstacle = new CouplingTerm(0, 0, obs, 0, 10);
+			obstacle = new CouplingTerm(0, 0, obs, 0, 10, mag);
 		}
 		Trajectory traj = new Trajectory();
 		traj.timeStepSize = dt;
@@ -478,7 +478,7 @@ public class DMP
 	{
 		double halfdt = Math.pow(Math.E, 0 - ((alpha * dt/2)/tau));
 		double sigma = halfdt/2;
-		double h = 1/(2 * sigma * sigma);
+		//double h = 1/(2 * sigma * sigma);
 		ArrayList<GaussianBasisFunction> xfuncs = new ArrayList<GaussianBasisFunction>();
 		ArrayList<GaussianBasisFunction> yfuncs = new ArrayList<GaussianBasisFunction>();
 		TreeSet<Double> sVals = new TreeSet<Double>();
@@ -486,18 +486,18 @@ public class DMP
 		{
 			sVals.addAll(targetX.keySet());
 		}
+		double hx = 0.003; //0.006 ok
+		double hy = 0.003; //0.0003 works
 		for (Double s : sVals)
 		{
-			xfuncs.add(new GaussianBasisFunction(5 * Math.pow(Math.E, 0 -s),s));
-			yfuncs.add(new GaussianBasisFunction(5 * Math.pow(Math.E, 0 -s),s));
+			//5, 5 is ok & 8 and 4.25 is ok 8 and 4.25
+			//compute the corresponding time
+			xfuncs.add(new GaussianBasisFunction(hx, s));
+			yfuncs.add(new GaussianBasisFunction(hy, s));
+			hx = hx * 1.4; //60.46
+			hy = hy * 1.3;
 		}
-		// for (HashMap<Double, Double> targetY : fTargetYs)
-		// {
-		// 	for (double s : targetY.keySet())
-		// 	{
-		// 		yfuncs.add(new GaussianBasisFunction(h, s));
-		// 	}
-		// }
+
 
 		gbfs.add(xfuncs);
 		gbfs.add(yfuncs);

@@ -8,7 +8,8 @@ public class CouplingTerm
 	public double mean;
 	public double variance;
 	public Gaussian g;
-	public CouplingTerm(double gamma, double phi, Point obs, double mean, double variance)
+	public double magnitude;
+	public CouplingTerm(double gamma, double phi, Point obs, double mean, double variance, double magnitude)
 	{
 		this.gamma = gamma;
 		this.phi = phi;
@@ -16,11 +17,12 @@ public class CouplingTerm
 		this.mean = mean;
 		this.variance = variance;
 		g = new Gaussian(mean, Math.sqrt(variance));
+		this.magnitude = magnitude;
 	}
 
 	public double getAccelerationMagnitude(Point currentLoc)
 	{
-		return 25000 * g.value(getDistance(currentLoc, obs));
+		return magnitude * g.value(getDistance(currentLoc, obs));
 	}
 
 	public double getDistance(Point a, Point b)
